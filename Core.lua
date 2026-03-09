@@ -1,112 +1,83 @@
 -- WeakAuras_SecurityManager - Core.lua
 -- Autor: Tecro
---
--- Ansatz: WeakAuras.LoadFunction wird gewrappt. Jede kompilierte WA-Funktion
--- bekommt eine neue Umgebung (setfenv), deren __index-Metamethode dynamisch
--- in WASecurityManagerDB nachschaut ob eine Funktion erlaubt ist.
--- Kein debug-Namespace noetig.
 
 WASecurityManager = WASecurityManager or {}
 WASecurityManager.version = "1.0.0"
-WASecurityManager.hooked = false
+WASecurityManager.hooked  = false
 
 -- ============================================================
--- Verwaltete Funktionen (nur WA-geblockte, wir koennen sie entsperren)
+-- Verwaltete Funktionen
+-- desc wird zur Laufzeit aus der Locale geladen (L["DESC_key"])
 -- ============================================================
 WASecurityManager.MANAGED_FUNCTIONS = {
-    -- Lua Utilities (oft von WeakAuras benoetigt fuer Fehlerbehandlung)
-    { key = "pcall",      category = "Lua",    desc = "Fehlerbehandlung (oft in WAs benoetigt)" },
-    { key = "xpcall",     category = "Lua",    desc = "Erweiterte Fehlerbehandlung" },
-    { key = "loadstring", category = "Lua",    desc = "Dynamisches Laden von Lua-Code" },
-    { key = "getfenv",    category = "Lua",    desc = "Lua-Environment lesen" },
-    { key = "setfenv",    category = "Lua",    desc = "Lua-Environment setzen" },
-    -- WoW System
-    { key = "RunScript",             category = "System",  desc = "Lua-Script direkt ausfuehren" },
-    { key = "securecall",            category = "System",  desc = "Sicherer Funktionsaufruf" },
-    { key = "DeleteCursorItem",      category = "System",  desc = "Item am Cursor loeschen",        default = false },
-    { key = "EnumerateFrames",       category = "System",  desc = "Alle UI-Frames aufzaehlen" },
-    { key = "DevTools_DumpCommand",  category = "System",  desc = "DevTools Dump-Befehl" },
-    -- Makros
-    { key = "EditMacro",       category = "Makro", desc = "Makros bearbeiten",                      default = false },
-    { key = "CreateMacro",     category = "Makro", desc = "Makros erstellen" },
-    { key = "SetBindingMacro", category = "Makro", desc = "Tastenbindung fuer Makro setzen" },
-    -- Chat
-    { key = "ChatEdit_SendText",       category = "Chat", desc = "Chat-Nachricht senden" },
-    { key = "ChatEdit_ActivateChat",   category = "Chat", desc = "Chat-Eingabe aktivieren" },
-    { key = "ChatEdit_ParseText",      category = "Chat", desc = "Chat-Text parsen" },
-    { key = "ChatEdit_OnEnterPressed", category = "Chat", desc = "Chat Enter-Taste simulieren" },
-    -- Handel / Post
-    { key = "SendMail",          category = "Handel", desc = "Post senden" },
-    { key = "AcceptTrade",       category = "Handel", desc = "Handel annehmen" },
-    { key = "SetTradeMoney",     category = "Handel", desc = "Handelsgeld setzen" },
-    { key = "AddTradeMoney",     category = "Handel", desc = "Handelsgeld hinzufuegen" },
-    { key = "PickupTradeMoney",  category = "Handel", desc = "Handelsgeld aufnehmen" },
-    { key = "PickupPlayerMoney", category = "Handel", desc = "Spielergold aufnehmen" },
-    { key = "SetSendMailMoney",  category = "Handel", desc = "Geld in Post legen" },
-    -- Gilde
-    { key = "GuildDisband",  category = "Gilde", desc = "Gilde aufloesen" },
-    { key = "GuildUninvite", category = "Gilde", desc = "Spieler aus Gilde werfen" },
-    -- Slash
-    { key = "hash_SlashCmdList",       category = "Slash", desc = "Slash-Befehlsliste" },
-    { key = "RegisterNewSlashCommand", category = "Slash", desc = "Neuen Slash-Befehl registrieren" },
+    { key = "pcall",                   category = "Lua"    },
+    { key = "xpcall",                  category = "Lua"    },
+    { key = "loadstring",              category = "Lua"    },
+    { key = "getfenv",                 category = "Lua"    },
+    { key = "setfenv",                 category = "Lua"    },
+    { key = "RunScript",               category = "System" },
+    { key = "securecall",              category = "System" },
+    { key = "DeleteCursorItem",        category = "System", default = false },
+    { key = "EnumerateFrames",         category = "System" },
+    { key = "DevTools_DumpCommand",    category = "System" },
+    { key = "EditMacro",               category = "Makro",  default = false },
+    { key = "CreateMacro",             category = "Makro"  },
+    { key = "SetBindingMacro",         category = "Makro"  },
+    { key = "ChatEdit_SendText",       category = "Chat"   },
+    { key = "ChatEdit_ActivateChat",   category = "Chat"   },
+    { key = "ChatEdit_ParseText",      category = "Chat"   },
+    { key = "ChatEdit_OnEnterPressed", category = "Chat"   },
+    { key = "SendMail",                category = "Handel" },
+    { key = "AcceptTrade",             category = "Handel" },
+    { key = "SetTradeMoney",           category = "Handel" },
+    { key = "AddTradeMoney",           category = "Handel" },
+    { key = "PickupTradeMoney",        category = "Handel" },
+    { key = "PickupPlayerMoney",       category = "Handel" },
+    { key = "SetSendMailMoney",        category = "Handel" },
+    { key = "GuildDisband",            category = "Gilde"  },
+    { key = "GuildUninvite",           category = "Gilde"  },
+    { key = "hash_SlashCmdList",       category = "Slash"  },
+    { key = "RegisterNewSlashCommand", category = "Slash"  },
 }
 
--- Standard: alles blockiert, ausser Eintraege mit default = false
+-- Standard-Werte
 local DEFAULTS = {}
 for _, entry in ipairs(WASecurityManager.MANAGED_FUNCTIONS) do
     DEFAULTS[entry.key] = (entry.default == false) and false or true
 end
 
 -- ============================================================
--- Patched Environment Factory
--- Erstellt eine neue Umgebung die UEBER der WA-Sandbox liegt.
--- Fuer erlaubte Funktionen (DB[k] == false) wird _G[k] zurueckgegeben,
--- alles andere geht durch die originale WA-Umgebung.
+-- Patched Environment
 -- ============================================================
 local function CreatePatchedEnv(origEnv)
     return setmetatable({}, {
         __index = function(t, k)
-            -- _G soll auf unsere Wrapper-Env zeigen (wie WA es macht)
             if k == "_G" then return t end
-            -- Erlaubte Funktionen direkt aus _G holen (umgeht WA-Block)
             if WASecurityManagerDB[k] == false then
                 local realVal = rawget(_G, k)
-                if realVal ~= nil then
-                    return realVal
-                end
+                if realVal ~= nil then return realVal end
             end
-            -- Alles andere: originale WA-Umgebung (mit Blocks, aura_env, etc.)
             return origEnv[k]
         end,
         __newindex = function(t, k, v)
-            -- Schreibzugriffe an originale WA-Env delegieren
             origEnv[k] = v
         end,
         __metatable = false
     })
 end
 
--- ============================================================
--- Hook installieren
--- ============================================================
--- Schwache Tabelle: verfolgt welche Funktionen bereits gepatcht wurden.
--- __mode = "k" damit GC die Eintraege raeumen kann wenn WA sie freigibt.
 local patchedFuncs = setmetatable({}, { __mode = "k" })
 
 local function InstallHook()
     if not WeakAuras or type(WeakAuras.LoadFunction) ~= "function" then
-        return false, "WeakAuras.LoadFunction nicht gefunden"
+        return false, "WeakAuras.LoadFunction not found"
     end
-
-    -- getfenv / setfenv pruefen
     if type(getfenv) ~= "function" then
-        return false, "getfenv nicht verfuegbar (Server sperrt diese Funktion)"
+        return false, "getfenv not available (server restriction)"
     end
     if type(setfenv) ~= "function" then
-        return false, "setfenv nicht verfuegbar (Server sperrt diese Funktion)"
+        return false, "setfenv not available (server restriction)"
     end
-
-    -- Bereits gehooked?
     if WASecurityManager.hooked then
         return true, nil
     end
@@ -132,11 +103,10 @@ local function InstallHook()
 end
 
 -- ============================================================
--- Einstellungen zuruecksetzen (fuer UI-Buttons)
+-- Public API
 -- ============================================================
 function WASecurityManager.SetBlocked(key, blocked)
     WASecurityManagerDB[key] = blocked
-    -- Aenderung wirkt sofort: naechste Ausfuehrung einer WA liest DB neu
 end
 
 function WASecurityManager.SetAllBlocked(blocked)
@@ -145,8 +115,15 @@ function WASecurityManager.SetAllBlocked(blocked)
     end
 end
 
+function WASecurityManager.Reconnect()
+    WASecurityManager.hooked = false
+    local ok, err = InstallHook()
+    WASecurityManager.lastError = err
+    return ok, err
+end
+
 -- ============================================================
--- ADDON_LOADED Handler
+-- ADDON_LOADED
 -- ============================================================
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("ADDON_LOADED")
@@ -156,6 +133,14 @@ frame:SetScript("OnEvent", function(self, event, addon)
 
     -- SavedVariables initialisieren
     WASecurityManagerDB = WASecurityManagerDB or {}
+
+    -- Sprache laden (default: enUS)
+    if not WASecurityManagerDB.locale then
+        WASecurityManagerDB.locale = "enUS"
+    end
+    WASecurityManager.SetLocale(WASecurityManagerDB.locale)
+
+    -- Defaults setzen
     for key, defaultVal in pairs(DEFAULTS) do
         if WASecurityManagerDB[key] == nil then
             WASecurityManagerDB[key] = defaultVal
@@ -163,25 +148,16 @@ frame:SetScript("OnEvent", function(self, event, addon)
     end
 
     -- Hook installieren
+    local L = WASecurityManager.L
     local ok, err = InstallHook()
     WASecurityManager.lastError = err
 
     if ok then
-        DEFAULT_CHAT_FRAME:AddMessage(
-            "|cff9900ffWeakAuras Security Manager|r: |cff00ff00Aktiv|r - /wasec zum Oeffnen.")
+        DEFAULT_CHAT_FRAME:AddMessage(L.MSG_LOADED)
     else
-        DEFAULT_CHAT_FRAME:AddMessage(
-            "|cff9900ffWeakAuras Security Manager|r: |cffff4444FEHLER - " .. (err or "Unbekannt") .. "|r")
+        DEFAULT_CHAT_FRAME:AddMessage(L.MSG_ERROR .. (err or "?") .. "|r")
     end
 end)
-
--- Re-Hook Funktion fuer den UI-Button
-function WASecurityManager.Reconnect()
-    WASecurityManager.hooked = false  -- Reset damit Hook neu installiert wird
-    local ok, err = InstallHook()
-    WASecurityManager.lastError = err
-    return ok, err
-end
 
 -- ============================================================
 -- Slash-Befehl

@@ -6,5 +6,6 @@
 ## Dependencies: WeakAuras
 ## SavedVariables: WASecurityManagerDB
 
+Locales.lua
 Core.lua
 UI.lua

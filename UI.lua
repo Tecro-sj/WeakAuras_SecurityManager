@@ -28,6 +28,7 @@ local function MakeBtn(parent, w, h, text, onClick)
     local lbl = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     lbl:SetAllPoints()
     lbl:SetText(text)
+    btn._lbl = lbl
     btn:SetScript("OnClick", onClick)
     btn:SetScript("OnEnter", function(s) s:SetBackdropColor(0.22, 0.22, 0.28, 1) end)
     btn:SetScript("OnLeave", function(s) s:SetBackdropColor(0.12, 0.12, 0.12, 1) end)
@@ -52,7 +53,7 @@ win:Hide()
 
 -- Titelleiste
 local titleBg = CreateFrame("Frame", nil, win)
-titleBg:SetPoint("TOPLEFT", win, "TOPLEFT", 1, -1)
+titleBg:SetPoint("TOPLEFT",  win, "TOPLEFT",  1, -1)
 titleBg:SetPoint("TOPRIGHT", win, "TOPRIGHT", -1, -1)
 titleBg:SetHeight(30)
 SetBackdropSimple(titleBg, 0.04, 0.04, 0.14, 1, 0.45, 0.2, 0.75)
@@ -60,8 +61,20 @@ SetBackdropSimple(titleBg, 0.04, 0.04, 0.14, 1, 0.45, 0.2, 0.75)
 local titleTxt = titleBg:CreateFontString(nil, "OVERLAY")
 titleTxt:SetFont("Fonts\\FRIZQT__.TTF", 13, "OUTLINE")
 titleTxt:SetPoint("CENTER", titleBg, "CENTER", -10, 0)
-titleTxt:SetText("|cff9900ffWeakAuras|r Security Manager")
 
+-- Sprach-Toggle (EN | DE) in der Titelleiste
+local langBtn = CreateFrame("Button", nil, titleBg)
+langBtn:SetSize(52, 20)
+langBtn:SetPoint("RIGHT", titleBg, "RIGHT", -36, 0)
+SetBackdropSimple(langBtn, 0.1, 0.1, 0.25, 1, 0.5, 0.3, 0.8)
+local langLbl = langBtn:CreateFontString(nil, "OVERLAY")
+langLbl:SetFont("Fonts\\FRIZQT__.TTF", 10, "OUTLINE")
+langLbl:SetAllPoints()
+langLbl:SetJustifyH("CENTER")
+langBtn:SetScript("OnEnter", function(s) s:SetBackdropColor(0.18, 0.18, 0.38, 1) end)
+langBtn:SetScript("OnLeave", function(s) s:SetBackdropColor(0.1, 0.1, 0.25, 1) end)
+
+-- Schliessen-Button
 local closeBtn = CreateFrame("Button", nil, win, "UIPanelCloseButton")
 closeBtn:SetPoint("TOPRIGHT", win, "TOPRIGHT", 2, 2)
 closeBtn:SetScript("OnClick", function() win:Hide() end)
@@ -69,7 +82,7 @@ closeBtn:SetScript("OnClick", function() win:Hide() end)
 -- Status-Zeile
 local statusLine = win:CreateFontString(nil, "OVERLAY")
 statusLine:SetFont("Fonts\\FRIZQT__.TTF", 11)
-statusLine:SetPoint("TOPLEFT", win, "TOPLEFT", 10, -36)
+statusLine:SetPoint("TOPLEFT",  win, "TOPLEFT",  10, -36)
 statusLine:SetPoint("TOPRIGHT", win, "TOPRIGHT", -36, -36)
 statusLine:SetJustifyH("LEFT")
 
@@ -83,23 +96,17 @@ SetBackdropSimple(hintBox, 0.18, 0.1, 0.0, 0.9, 0.7, 0.45, 0.0)
 local hintTxt = hintBox:CreateFontString(nil, "OVERLAY")
 hintTxt:SetFont("Fonts\\FRIZQT__.TTF", 10)
 hintTxt:SetPoint("TOPLEFT",     hintBox, "TOPLEFT",     6, -4)
-hintTxt:SetPoint("BOTTOMRIGHT", hintBox, "BOTTOMRIGHT", -6, 4)
+hintTxt:SetPoint("BOTTOMRIGHT", hintBox, "BOTTOMRIGHT", -6,  4)
 hintTxt:SetJustifyH("LEFT")
 hintTxt:SetJustifyV("MIDDLE")
 hintTxt:SetTextColor(1, 0.75, 0.1)
-hintTxt:SetText(
-    "|cffff8800[!]|r Aenderungen wirken sofort (kein Reload noetig). " ..
-    "Nur eigene/vertrauenswuerdige WeakAuras entsperren!")
 
 -- ============================================================
 -- ScrollFrame
 -- ============================================================
-local scrollTop    = -96
-local scrollBottom =  46
-
 local sf = CreateFrame("ScrollFrame", "WASecScrollFrame", win)
-sf:SetPoint("TOPLEFT",     win, "TOPLEFT",    8,  scrollTop)
-sf:SetPoint("BOTTOMRIGHT", win, "BOTTOMRIGHT", -26, scrollBottom)
+sf:SetPoint("TOPLEFT",     win, "TOPLEFT",     8,  -96)
+sf:SetPoint("BOTTOMRIGHT", win, "BOTTOMRIGHT", -26,  46)
 
 local sb = CreateFrame("Slider", "WASecScrollBar", sf, "UIPanelScrollBarTemplate")
 sb:SetPoint("TOPLEFT",    sf, "TOPRIGHT",    3, -16)
@@ -125,10 +132,8 @@ sf:SetScrollChild(content)
 -- ============================================================
 -- Zeilen-Cache
 -- ============================================================
-local rowCache    = {}
-local catCache    = {}
-local rowCount    = 0
-local catCount    = 0
+local rowCache = {}
+local catCache = {}
 
 local function GetRow(i)
     if rowCache[i] then return rowCache[i] end
@@ -146,9 +151,8 @@ local function GetRow(i)
     row:SetScript("OnEnter", function(s) s:SetBackdropColor(0.15, 0.15, 0.2, 0.5) end)
     row:SetScript("OnLeave", function(s) s:SetBackdropColor(0, 0, 0, 0) end)
 
-    -- Toggle-Button
     local tog = CreateFrame("Button", nil, row)
-    tog:SetSize(80, ROW_H - 4)
+    tog:SetSize(82, ROW_H - 4)
     tog:SetPoint("LEFT", row, "LEFT", 2, 0)
     SetBackdropSimple(tog, 0.25, 0.05, 0.05, 1)
 
@@ -157,7 +161,6 @@ local function GetRow(i)
     togLbl:SetAllPoints()
     togLbl:SetJustifyH("CENTER")
 
-    -- Funktionsname
     local nameTxt = row:CreateFontString(nil, "OVERLAY")
     nameTxt:SetFont("Fonts\\FRIZQT__.TTF", 11, "OUTLINE")
     nameTxt:SetPoint("LEFT", tog, "RIGHT", 8, 0)
@@ -165,7 +168,6 @@ local function GetRow(i)
     nameTxt:SetJustifyH("LEFT")
     nameTxt:SetTextColor(0.9, 0.9, 0.9)
 
-    -- Beschreibung
     local descTxt = row:CreateFontString(nil, "OVERLAY")
     descTxt:SetFont("Fonts\\FRIZQT__.TTF", 10)
     descTxt:SetPoint("LEFT",  nameTxt, "RIGHT", 4, 0)
@@ -177,8 +179,7 @@ local function GetRow(i)
     row._togLbl  = togLbl
     row._nameTxt = nameTxt
     row._descTxt = descTxt
-
-    rowCache[i] = row
+    rowCache[i]  = row
     return row
 end
 
@@ -193,37 +194,36 @@ local function GetCatHeader(i)
     lbl:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
     lbl:SetPoint("LEFT", hdr, "LEFT", 10, 0)
     lbl:SetTextColor(1, 0.78, 0.0)
-    hdr._lbl = lbl
-
+    hdr._lbl    = lbl
     catCache[i] = hdr
     return hdr
 end
 
 -- ============================================================
--- Einzel-Zeile rendern
+-- Einzelne Zeile rendern
 -- ============================================================
 local function RefreshRow(row, entry)
+    local L       = WASecurityManager.L
     local key     = entry.key
     local blocked = WASecurityManagerDB[key]
     if blocked == nil then blocked = true end
 
     row._nameTxt:SetText(key)
-    row._descTxt:SetText(entry.desc)
+    row._descTxt:SetText(L["DESC_" .. key] or key)
 
     local tog    = row._tog
     local togLbl = row._togLbl
 
     if blocked then
-        togLbl:SetText("|cffff5555BLOCKIERT|r")
+        togLbl:SetText("|cffff5555" .. L.TOGGLE_BLOCKED .. "|r")
         tog:SetBackdropColor(0.28, 0.05, 0.05, 1)
     else
-        togLbl:SetText("|cff55ff55ERLAUBT|r")
+        togLbl:SetText("|cff55ff55" .. L.TOGGLE_ALLOWED .. "|r")
         tog:SetBackdropColor(0.05, 0.22, 0.05, 1)
     end
 
     tog:SetScript("OnClick", function()
-        local newVal = not WASecurityManagerDB[key]
-        WASecurityManager.SetBlocked(key, newVal)
+        WASecurityManager.SetBlocked(key, not WASecurityManagerDB[key])
         RefreshRow(row, entry)
     end)
     tog:SetScript("OnEnter", function(s)
@@ -243,13 +243,13 @@ local function RefreshRow(row, entry)
 end
 
 -- ============================================================
--- Gesamten Inhalt aufbauen
+-- Inhalt aufbauen
 -- ============================================================
 local function BuildContent()
+    local L = WASecurityManager.L
     local W = sf:GetWidth() or (WINDOW_W - 38)
     content:SetWidth(W)
 
-    -- Kategorien in Reihenfolge
     local cats, seen = {}, {}
     for _, e in ipairs(WASecurityManager.MANAGED_FUNCTIONS) do
         if not seen[e.category] then
@@ -258,9 +258,9 @@ local function BuildContent()
         end
     end
 
-    local yOff  = -4
-    local ci    = 0  -- Kategorie-Index
-    local ri    = 0  -- Zeilen-Index
+    local yOff = -4
+    local ci   = 0
+    local ri   = 0
 
     for _, cat in ipairs(cats) do
         if ci > 0 then yOff = yOff - CAT_PAD end
@@ -270,7 +270,8 @@ local function BuildContent()
         hdr:SetWidth(W - 4)
         hdr:ClearAllPoints()
         hdr:SetPoint("TOPLEFT", content, "TOPLEFT", 2, yOff)
-        hdr._lbl:SetText(cat)
+        -- Kategoriename aus Locale (CAT_Lua, CAT_System, etc.)
+        hdr._lbl:SetText(L["CAT_" .. cat] or cat)
         hdr:Show()
         yOff = yOff - CAT_H - 2
 
@@ -288,68 +289,92 @@ local function BuildContent()
         end
     end
 
-    -- Rest verstecken
     local x = ri + 1
     while rowCache[x] do rowCache[x]:Hide(); x = x + 1 end
     local y = ci + 1
     while catCache[y] do catCache[y]:Hide(); y = y + 1 end
 
-    rowCount = ri
-    catCount = ci
-
     local totalH = math.abs(yOff) + 8
     content:SetHeight(totalH)
-
-    local sfH = sf:GetHeight() or 400
-    local maxScroll = math.max(0, totalH - sfH)
+    local maxScroll = math.max(0, totalH - (sf:GetHeight() or 400))
     sb:SetMinMaxValues(0, maxScroll)
     sb:SetValue(0)
 end
 
 -- ============================================================
--- Status-Zeile aktualisieren
+-- UI-Texte aktualisieren (nach Sprachwechsel)
 -- ============================================================
-local function UpdateStatus()
-    if WASecurityManager.hooked then
-        statusLine:SetText(
-            "|cff00ff00[AKTIV]|r Hook installiert - " ..
-            "Aenderungen wirken sofort ohne Reload.")
+local btnBlockAll, btnAllowAll, btnReconn, btnClose2  -- forward refs
+
+local function RefreshUIText()
+    local L = WASecurityManager.L
+    titleTxt:SetText(L.TITLE)
+    hintTxt:SetText(L.HINT_TEXT)
+
+    -- Sprach-Button: aktive Sprache anzeigen
+    local cur = WASecurityManagerDB and WASecurityManagerDB.locale or "enUS"
+    if cur == "enUS" then
+        langLbl:SetText("|cffffffff EN|r |cff888888| DE|r")
     else
-        local err = WASecurityManager.lastError or "Unbekannter Fehler"
-        statusLine:SetText("|cffff4444[FEHLER]|r " .. err)
+        langLbl:SetText("|cff888888EN ||r |cffffffff DE|r")
+    end
+
+    if btnBlockAll then btnBlockAll._lbl:SetText(L.BTN_BLOCK_ALL) end
+    if btnAllowAll then btnAllowAll._lbl:SetText(L.BTN_ALLOW_ALL) end
+    if btnReconn   then btnReconn._lbl:SetText(L.BTN_RECONNECT)   end
+    if btnClose2   then btnClose2._lbl:SetText(L.BTN_CLOSE)       end
+
+    -- Status
+    if WASecurityManager.hooked then
+        statusLine:SetText(L.STATUS_ACTIVE)
+    else
+        statusLine:SetText(L.STATUS_ERROR .. (WASecurityManager.lastError or "?"))
     end
 end
+
+-- ============================================================
+-- Sprach-Toggle
+-- ============================================================
+langBtn:SetScript("OnClick", function()
+    local cur = WASecurityManagerDB.locale or "enUS"
+    local new = (cur == "enUS") and "deDE" or "enUS"
+    WASecurityManagerDB.locale = new
+    WASecurityManager.SetLocale(new)
+    RefreshUIText()
+    BuildContent()
+end)
 
 -- ============================================================
 -- Untere Buttons
 -- ============================================================
 local btnH = 24
 
-local btnBlock = MakeBtn(win, 130, btnH, "|cffff6666Alles blockieren|r", function()
+btnBlockAll = MakeBtn(win, 130, btnH, "", function()
     WASecurityManager.SetAllBlocked(true)
     BuildContent()
 end)
-btnBlock:SetPoint("BOTTOMLEFT", win, "BOTTOMLEFT", 10, 12)
+btnBlockAll:SetPoint("BOTTOMLEFT", win, "BOTTOMLEFT", 10, 12)
 
-local btnAllow = MakeBtn(win, 130, btnH, "|cff66ff66Alle erlauben|r", function()
+btnAllowAll = MakeBtn(win, 130, btnH, "", function()
     WASecurityManager.SetAllBlocked(false)
     BuildContent()
 end)
-btnAllow:SetPoint("LEFT", btnBlock, "RIGHT", 6, 0)
+btnAllowAll:SetPoint("LEFT", btnBlockAll, "RIGHT", 6, 0)
 
-local btnReconn = MakeBtn(win, 100, btnH, "Neu verbinden", function()
+btnReconn = MakeBtn(win, 110, btnH, "", function()
     local ok, err = WASecurityManager.Reconnect()
     WASecurityManager.lastError = err
-    UpdateStatus()
+    local L = WASecurityManager.L
+    RefreshUIText()
     if ok then
-        DEFAULT_CHAT_FRAME:AddMessage("|cff9900ffWASec|r: |cff00ff00Erfolgreich verbunden.|r")
+        DEFAULT_CHAT_FRAME:AddMessage(L.MSG_RECONNECTED)
     else
-        DEFAULT_CHAT_FRAME:AddMessage("|cff9900ffWASec|r: |cffff4444Fehler - " .. (err or "?") .. "|r")
+        DEFAULT_CHAT_FRAME:AddMessage(L.MSG_RECONNECT_ERR .. (err or "?") .. "|r")
     end
 end)
-btnReconn:SetPoint("LEFT", btnAllow, "RIGHT", 6, 0)
+btnReconn:SetPoint("LEFT", btnAllowAll, "RIGHT", 6, 0)
 
-local btnClose2 = MakeBtn(win, 80, btnH, "Schliessen", function()
+btnClose2 = MakeBtn(win, 76, btnH, "", function()
     win:Hide()
 end)
 btnClose2:SetPoint("BOTTOMRIGHT", win, "BOTTOMRIGHT", -10, 12)
@@ -358,7 +383,7 @@ btnClose2:SetPoint("BOTTOMRIGHT", win, "BOTTOMRIGHT", -10, 12)
 -- OnShow / Toggle
 -- ============================================================
 win:SetScript("OnShow", function()
-    UpdateStatus()
+    RefreshUIText()
     BuildContent()
 end)
 
