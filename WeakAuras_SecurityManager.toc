@@ -1,0 +1,10 @@
+## Interface: 30300
+## Title: |cff9900ffWeakAuras|r Security Manager
+## Notes: Verwalte WeakAuras Sandbox-Sicherheitseinstellungen in-game
+## Author: Tecro
+## Version: 1.0.0
+## Dependencies: WeakAuras
+## SavedVariables: WASecurityManagerDB
+
+Core.lua
+UI.lua
