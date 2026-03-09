@@ -314,9 +314,9 @@ local function RefreshUIText()
     -- Sprach-Button: aktive Sprache anzeigen
     local cur = WASecurityManagerDB and WASecurityManagerDB.locale or "enUS"
     if cur == "enUS" then
-        langLbl:SetText("|cffffffff EN|r |cff888888| DE|r")
+        langLbl:SetText("|cffffffff EN|r |cff888888 DE|r")
     else
-        langLbl:SetText("|cff888888EN ||r |cffffffff DE|r")
+        langLbl:SetText("|cff888888 EN|r |cffffffff DE|r")
     end
 
     if btnBlockAll then btnBlockAll._lbl:SetText(L.BTN_BLOCK_ALL) end

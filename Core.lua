@@ -5,6 +5,19 @@ WASecurityManager = WASecurityManager or {}
 WASecurityManager.version = "1.0.0"
 WASecurityManager.hooked  = false
 
+-- SetLocale hier definiert (Locales.lua liefert nur die Daten-Tabelle)
+function WASecurityManager.SetLocale(lang)
+    local locs = WASecurityManager_Locales
+    if not locs then
+        WASecurityManager.L = {}
+        return
+    end
+    WASecurityManager.L = locs[lang] or locs["enUS"]
+end
+
+-- Sofort mit enUS initialisieren damit L nie nil ist
+WASecurityManager.SetLocale("enUS")
+
 -- ============================================================
 -- Verwaltete Funktionen
 -- desc wird zur Laufzeit aus der Locale geladen (L["DESC_key"])
